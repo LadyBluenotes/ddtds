@@ -1,73 +1,64 @@
-# React + TypeScript + Vite
+# ddtds
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+ddtds doctests that don't suck
 
-Currently, two official plugins are available:
+runs your code blocks as tests with your framework of choice
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Architecture
 
-## React Compiler
+1. parse codeblocks + tags
+2. build testfiles 
+3. run with repo config
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Takes advantage of existing test config instead of a separate compiler config or test config
 
-## Expanding the ESLint configuration
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Alternatives
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+TODO verify these claims and also find more alternatives
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+typescript-docs-verifier typechecks with a custom config, I don't believe it allows for custom compilers so react is off the table
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+markdown-doctest seems pretty old looking and only works with js
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Roadmap
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Must haves
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. support vitest
+2. CLI 
+3. hide boilerplate (should it be # or other syntax)
+4. annotations (compile fail, no run, should throw)
+5. --max-failures to ratchet down build failures incrementally 
+6. agent skill to aid with migration and fixing build failures (prefer adding hidden imports to compile, do not add assertions??)
+7. ignore config (maybe file?)
+8. Hoisting imports (what if conflicting? should we just rewrite to dynamic imports??? one file per test?)
+9. dynamic imports/relative paths
+10. test isolation (users ideally shouldn't be setting globals in tests, should we deal with this ourselves?)
+11. monorepo with multiple testing roots (I think doctest package would be best here to avoid polluting the dev deps in root)
+12. flat vs nested node modules
+13. strip export/export default 
+
+Nice to haves
+
+1. formatting in the blocks
+2. generic template string to add generic top level imports and test func 
+3. other framework support like node builtin support or jest
+4. error handling (if fails to compile, how to point at source?)
+5. watch mode
+
+
+### features that may come up
+
+- ESM vs Commonjs?
+- max warnings to allow projects with build failures to crank them down
+- maybe force assertions?
+- pass through flags
+
+### testing to do
+
+- MDX
+- md
+- general larger repos
+- vitest/jest
+- various frameworks (react, solid, vue)

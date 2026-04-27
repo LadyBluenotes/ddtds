@@ -60,7 +60,7 @@ function findVitest(): string | null {
   }
 }
 
-const outputFlag = {
+const sharedFlags = {
   output: {
     type: String,
     default: '__doctests__',
@@ -68,11 +68,19 @@ const outputFlag = {
   },
 } as const
 
+const testFlags = {
+  ...sharedFlags,
+  config: {
+    type: String,
+    description: 'Path to an existing vitest/vite config file',
+  },
+} as const
+
 const buildCmd = command(
   {
     name: 'build',
     parameters: ['[dir]'],
-    flags: outputFlag,
+    flags: sharedFlags,
   },
   (argv) => {
     const searchDir = argv._.dir ?? process.cwd()
@@ -84,7 +92,7 @@ const testCmd = command(
   {
     name: 'test',
     parameters: ['[dir]'],
-    flags: outputFlag,
+    flags: testFlags,
   },
   (argv) => {
     const searchDir = argv._.dir ?? process.cwd()
@@ -98,7 +106,12 @@ const testCmd = command(
       process.exit(1)
     }
 
-    const { status } = spawnSync(vitest, ['run', outputDir], { stdio: 'inherit' })
+    const vitestArgs = ['run', outputDir]
+    if (argv.flags.config) {
+      vitestArgs.push('--config', argv.flags.config)
+    }
+
+    const { status } = spawnSync(vitest, vitestArgs, { stdio: 'inherit' })
     process.exit(status ?? 1)
   },
 )
