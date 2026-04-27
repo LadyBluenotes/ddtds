@@ -36,16 +36,17 @@ Must haves
 9. dynamic imports/relative paths
 10. test isolation (users ideally shouldn't be setting globals in tests, should we deal with this ourselves?)
 11. monorepo with multiple testing roots (I think doctest package would be best here to avoid polluting the dev deps in root)
-12. flat vs nested node modules
-13. strip export/export default 
+12. strip export/export default 
+13. don't crash process on compile failure
 
 Nice to haves
 
-1. formatting in the blocks
-2. generic template string to add generic top level imports and test func 
-3. other framework support like node builtin support or jest
-4. error handling (if fails to compile, how to point at source?)
-5. watch mode
+1. generic template string to add generic top level imports and test func 
+2. other framework support like node builtin support or jest
+3. error handling (if fails to compile, how to point at source?)
+4. watch mode
+5. JSON output for ratcheting/LLM consumption/MCP
+6. JSDOC stuff
 
 
 ### features that may come up
