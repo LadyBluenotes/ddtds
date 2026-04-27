@@ -1,0 +1,13 @@
+{
+  "name": "ddtds",
+  "version": "0.0.0",
+  "type": "module",
+  "bin": {
+    "ddt": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ddtds/core": "workspace:*",
+    "@ddtds/vitest": "workspace:*",
+    "cleye": "^2.6.0"
+  }
+}

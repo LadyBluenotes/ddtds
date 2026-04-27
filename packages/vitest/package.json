@@ -1,0 +1,17 @@
+{
+  "name": "@ddtds/vitest",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ddtds/core": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.5"
+  },
+  "scripts": {
+    "test": "vitest run"
+  }
+}
