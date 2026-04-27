@@ -1,15 +1,30 @@
 import type { DocBlock } from '@ddtds/core'
 import { stripHidden } from '@ddtds/core'
 
-const IMPORT_RE = /^(import\s[\s\S]*?['"][^'"]+['"]\s*;?\s*\n?)/gm
+// Matches static import statements
+const IMPORT_RE =
+  /^import\s+([\s\S]*?)\s+from\s+(['"][^'"]+['"])\s*;?\n?|^import\s+(['"][^'"]+['"])\s*;?\n?/gm
 
-function extractImports(code: string): { imports: string[]; body: string } {
-  const imports: string[] = []
-  const body = code.replace(IMPORT_RE, (match) => {
-    imports.push(match.trimEnd())
-    return ''
-  })
-  return { imports, body: body.replace(/^\n+/, '') }
+function convertImportsToDynamic(code: string): string {
+  return code.replace(
+    IMPORT_RE,
+    (_, specifiers, from, sideEffect) => {
+      if (sideEffect) {
+        return `await import(${sideEffect});\n`
+      }
+      const src = from.trim()
+      const s = specifiers.trim()
+      if (s.startsWith('* as ')) {
+        const ns = s.slice(5).trim()
+        return `const ${ns} = await import(${src});\n`
+      }
+      if (s.startsWith('{')) {
+        return `const ${s} = await import(${src});\n`
+      }
+      // default import
+      return `const { default: ${s} } = await import(${src});\n`
+    },
+  )
 }
 
 function sanitizeBody(code: string): string {
@@ -41,20 +56,16 @@ export function generateTestFile(mdPath: string, blocks: DocBlock[]): string {
     headerLines.push("import { render, screen, fireEvent } from '@testing-library/react'")
   }
 
-  const hoisted = new Set<string>(headerLines)
   const processedBlocks: Array<{ block: DocBlock; body: string }> = []
 
   for (const block of blocks) {
     const stripped = stripHidden(block.code)
-    const { imports, body: rawBody } = extractImports(stripped)
-    const body = sanitizeBody(rawBody)
-    for (const imp of imports) {
-      if (!hoisted.has(imp)) hoisted.add(imp)
-    }
+    const withDynamic = convertImportsToDynamic(stripped)
+    const body = sanitizeBody(withDynamic)
     processedBlocks.push({ block, body })
   }
 
-  const header = [...hoisted].join('\n') + '\n\n'
+  const header = headerLines.join('\n') + '\n\n'
 
   const tests = processedBlocks.map(({ block, body }) => {
     const name = `${mdPath}:${block.line}`
