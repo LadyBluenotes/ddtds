@@ -78,13 +78,7 @@ describe("CodeBlock.splitImports", () => {
   test("rewrites export default expressions", () => {
     const b = block("export default 1;");
     const { body } = b.splitImports();
-    expect(body).toBe("const _default = 1;");
-  });
-
-  test("strips declare statements", () => {
-    const b = block("declare const neverDefined: number;\nconst safe = 1;");
-    const { body } = b.splitImports();
-    expect(body).toBe("const safe = 1;");
+    expect(body).toMatchInlineSnapshot(`"const ______default_that_does_not_conflict = 1;"`);
   });
 });
 

@@ -54,9 +54,7 @@ const g = new Greeter("world");
 expect(g.greet()).toBe("hello world");
 ```
 
-## Declare Stripping
-
-`declare` statements should be removed from executable output.
+## Declare Is Fine
 
 ```ts
 declare const neverDefined: number;
