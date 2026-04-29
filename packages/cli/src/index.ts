@@ -1,5 +1,5 @@
 import { cli, command } from "cleye";
-import { generate } from "@ddtds/core";
+import { generate } from "@ddtds/vitest";
 
 const buildCmd = command(
   {
