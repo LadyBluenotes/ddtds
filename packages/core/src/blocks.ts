@@ -1,13 +1,26 @@
 import { remark } from "remark";
 import { visit } from "unist-util-visit";
-import { Node, Project, type SourceFile, SyntaxKind } from "ts-morph";
+import { parseSync, type ParserOptions, type StaticImport } from "oxc-parser";
 import { SUPPORTED_LANGS, ANNOTATIONS } from "./constants.ts";
 
-const project = new Project({
-  useInMemoryFileSystem: true,
-  skipFileDependencyResolution: true,
-  compilerOptions: { allowJs: true },
-});
+type OxcStatement = {
+  type: string;
+  start: number;
+  end: number;
+  declare?: boolean;
+  id?: unknown;
+  declaration?: OxcStatement | null;
+};
+
+type OxcProgram = {
+  body: OxcStatement[];
+};
+
+type Edit = {
+  start: number;
+  end: number;
+  text: string;
+};
 
 export class CodeBlock {
   readonly #code: string;
@@ -39,44 +52,35 @@ export class CodeBlock {
   }
 
   splitImports(): { imports: string[]; body: string } {
-    const file = project.createSourceFile(this.isJsx() ? "block.tsx" : "block.ts", this.#code, {
-      overwrite: true,
+    const lang = this.parserLang();
+    const parsed = parseSync(`block.${lang}`, this.#code, {
+      lang,
+      sourceType: "module",
     });
+    const program = parsed.program as OxcProgram;
+    const imports = parsed.module.staticImports.map((staticImport) =>
+      sliceImport(this.#code, staticImport),
+    );
+    const edits: Edit[] = parsed.module.staticImports.map((staticImport) =>
+      removeStatement(this.#code, staticImport.start, staticImport.end),
+    );
 
-    sanitizeExports(file);
-
-    const importDecls = file.getImportDeclarations();
-    const imports = importDecls.map((d) => d.getText().trimEnd());
-    importDecls.forEach((d) => d.remove());
+    for (const statement of program.body) {
+      edits.push(...sanitizeStatement(this.#code, statement));
+    }
 
     return {
       imports,
-      body: file
-        .getStatements()
-        .map((stmt) => stmt.getText().trimEnd())
-        .join("\n"),
+      body: applyEdits(this.#code, edits).replace(/^\n+/, "").trimEnd(),
     };
   }
-}
 
-function sanitizeExports(file: SourceFile): void {
-  for (const stmt of file.getStatements()) {
-    if (
-      Node.isVariableStatement(stmt) ||
-      Node.isFunctionDeclaration(stmt) ||
-      Node.isClassDeclaration(stmt) ||
-      Node.isInterfaceDeclaration(stmt) ||
-      Node.isTypeAliasDeclaration(stmt) ||
-      Node.isEnumDeclaration(stmt) ||
-      Node.isModuleDeclaration(stmt)
-    ) {
-      if (stmt.hasModifier(SyntaxKind.DeclareKeyword)) {
-        stmt.remove();
-        continue;
-      }
-      stmt.toggleModifier("default", false);
-      stmt.toggleModifier("export", false);
-    }
+  parserLang(): NonNullable<ParserOptions["lang"]> {
+    if (this.lang === "javascript") return "js";
+    if (this.lang === "typescript") return "ts";
+    if (this.lang === "jsx") return "jsx";
+    if (this.lang === "tsx") return "tsx";
+    return "ts";
   }
 }
 
@@ -93,4 +97,79 @@ export function parseCodeFences(source: string): CodeBlock[] {
   });
 
   return blocks;
+}
+
+function sanitizeStatement(source: string, statement: OxcStatement): Edit[] {
+  if (statement.type === "ImportDeclaration") {
+    return [];
+  }
+
+  if (isDeclareStatement(statement)) {
+    return [removeStatement(source, statement.start, statement.end)];
+  }
+
+  if (statement.type === "ExportNamedDeclaration") {
+    if (!statement.declaration || isDeclareStatement(statement.declaration)) {
+      return [removeStatement(source, statement.start, statement.end)];
+    }
+
+    return [removePrefix(statement.start, statement.declaration.start)];
+  }
+
+  if (statement.type === "ExportAllDeclaration") {
+    return [removeStatement(source, statement.start, statement.end)];
+  }
+
+  if (statement.type === "ExportDefaultDeclaration") {
+    const declaration = statement.declaration;
+    if (!declaration) return [removeStatement(source, statement.start, statement.end)];
+
+    if (
+      (declaration.type === "ClassDeclaration" || declaration.type === "FunctionDeclaration") &&
+      declaration.id
+    ) {
+      return [removePrefix(statement.start, declaration.start)];
+    }
+
+    return [{ start: statement.start, end: declaration.start, text: "const _default = " }];
+  }
+
+  return [];
+}
+
+function isDeclareStatement(statement: OxcStatement): boolean {
+  return statement.declare === true || statement.type === "TSDeclareFunction";
+}
+
+function sliceImport(source: string, staticImport: StaticImport): string {
+  return source.slice(staticImport.start, includeSemicolon(source, staticImport.end)).trimEnd();
+}
+
+function removePrefix(start: number, end: number): Edit {
+  return { start, end, text: "" };
+}
+
+function removeStatement(source: string, start: number, end: number): Edit {
+  let adjustedEnd = includeSemicolon(source, end);
+  while (
+    adjustedEnd < source.length &&
+    (source[adjustedEnd] === " " || source[adjustedEnd] === "\t" || source[adjustedEnd] === "\r")
+  ) {
+    adjustedEnd++;
+  }
+  if (source[adjustedEnd] === "\n") adjustedEnd++;
+  return { start, end: adjustedEnd, text: "" };
+}
+
+function includeSemicolon(source: string, end: number): number {
+  return source[end] === ";" ? end + 1 : end;
+}
+
+function applyEdits(source: string, edits: Edit[]): string {
+  return edits
+    .toSorted((a, b) => b.start - a.start)
+    .reduce(
+      (output, edit) => output.slice(0, edit.start) + edit.text + output.slice(edit.end),
+      source,
+    );
 }

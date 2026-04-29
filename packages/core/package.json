@@ -12,6 +12,7 @@
     "typecheck": "tsgo"
   },
   "dependencies": {
+    "oxc-parser": "^0.128.0",
     "remark": "^15.0.1",
     "tinyglobby": "^0.2.16",
     "ts-morph": "^28.0.0",

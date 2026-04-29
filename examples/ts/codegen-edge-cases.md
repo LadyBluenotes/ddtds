@@ -1,6 +1,6 @@
 # Codegen Import/Export Edge Cases
 
-These snippets are aimed at the import/export transformations used when generating doctests.
+These snippets cover import and export transformations used when generating doctests.
 
 ## Import Hoisting
 
