@@ -80,3 +80,24 @@ const users: UserMap = {
 
 expect(users.a?.id).toBe("a");
 ```
+
+## Export Default Object Expression
+
+Default export expressions should be rewritten so they are valid inside the generated test function body.
+
+```ts
+export default { answer: 42 };
+
+expect(1 + 1).toBe(2);
+```
+
+## Export Named List Declaration
+
+Named export lists should be removed from the test body while keeping surrounding runtime code.
+
+```ts
+const foo = "ok";
+export { foo };
+
+expect(foo).toBe("ok");
+```
