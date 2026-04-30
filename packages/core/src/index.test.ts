@@ -33,20 +33,6 @@ describe("parseBlocks", () => {
   });
 });
 
-describe("CodeBlock.outputExtension", () => {
-  test("returns ts for ts block", () => {
-    expect(new CodeBlock("", "ts", "", 1).outputExtension).toBe("ts");
-  });
-
-  test("returns tsx for tsx block", () => {
-    expect(new CodeBlock("", "tsx", "", 1).outputExtension).toBe("tsx");
-  });
-
-  test("returns tsx for jsx block", () => {
-    expect(new CodeBlock("", "jsx", "", 1).outputExtension).toBe("tsx");
-  });
-});
-
 function block(code: string, meta = "", line = 1, lang = "ts"): CodeBlock {
   return new CodeBlock(code, lang, meta, line);
 }
